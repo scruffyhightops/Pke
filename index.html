@@ -1,4 +1,514 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><meta name="theme-color" content="#02080d"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><title>PKE Field Scanner</title><link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="style.css"></head><body><main>
-<section id="activation" class="screen active"><div class="activation-panel"><div class="eyebrow">PARANORMAL KINETIC EQUIPMENT</div><h1>PKE<br><span>FIELD SCANNER</span></h1><div class="unit">FIELD UNIT // SIMULATION</div><button id="activateBtn" class="primary-btn">ACTIVATE</button><div class="small-note">SIMULATION SYSTEM • NO CAMERA ACCESS</div></div></section>
-<section id="boot" class="screen"><div class="boot-content"><div class="boot-title">PKE FIELD SCANNER</div><div id="bootLog" class="boot-log"></div></div></section>
-<section id="scanner" class="screen"><header class="topbar"><div><div class="tiny">PKE FIELD SCANNER</div><div class="mode-label">FIELD MONITOR // <span id="displayModeLabel">FLUID WAVE</span></div></div><button id="menuBtn" class="icon-btn">☰</button></header><div class="signal-area"><canvas id="signalCanvas"></canvas><div class="signal-caption">PSYCHOKINETIC FIELD RESPONSE</div></div><section class="readout"><div class="threat-card"><div class="tiny">THREAT LEVEL</div><div class="threat-number" id="threatNumber">100</div><div class="status" id="status">LOW</div></div><div class="meter-wrap"><div class="meter-labels"><span>100</span><span>1200</span></div><input id="threatSlider" type="range" min="100" max="1200" value="100"></div><div class="indicators"><div><span class="dot"></span>FIELD</div><div><span class="dot"></span>AUDIO</div><div><span class="dot"></span>SENSOR</div></div></section><div id="controlPanel" class="control-panel"><div class="panel-title">OPERATOR CONTROLS</div><div class="mode-buttons"><button class="mode-btn active" data-mode="wave">FLUID WAVE</button><button class="mode-btn" data-mode="bars">BAR GRAPH</button></div><div class="button-row"><button id="autoBtn" class="control-btn">AUTO: OFF</button><button id="lockBtn" class="control-btn">LOCK: OFF</button></div><div class="button-row"><button id="audioBtn" class="control-btn">AUDIO: ON</button><button id="deactivateBtn" class="control-btn danger">DEACTIVATE</button></div><div class="panel-note">DISPLAY MODE DOES NOT ALTER THREAT LEVEL</div></div></section></main><script src="app.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#02080d">
+<title>PKE Field Scanner — Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#02080d;
+    --bg-panel:#0a1620;
+    --bg-panel-2:#0e1e2a;
+    --line:#1c3341;
+    --green:#35f2a0;
+    --green-dim:#144a37;
+    --amber:#ffb020;
+    --red:#ff4545;
+    --text:#d7ecec;
+    --text-dim:#5f8592;
+    --accent:var(--green);
+    --accent-dim:var(--green-dim);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--bg-deep); color:var(--text);
+    font-family:'Share Tech Mono', monospace;
+    overflow:hidden; overscroll-behavior:none;
+    display:flex; justify-content:center; align-items:center;
+  }
+  #frame{
+    width:100%; max-width:430px; height:100%; max-height:900px;
+    position:relative; background:var(--bg-deep);
+    border-left:1px solid var(--line); border-right:1px solid var(--line);
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+  #frame::after{
+    content:""; position:absolute; inset:0; pointer-events:none; z-index:50;
+    background:repeating-linear-gradient(180deg, rgba(255,255,255,0.028) 0px, rgba(255,255,255,0.028) 1px, transparent 1px, transparent 3px);
+    mix-blend-mode:overlay;
+  }
+  h1,h2,.display-font{ font-family:'Orbitron', sans-serif; }
+
+  .screen{ position:absolute; inset:0; display:none; flex-direction:column; }
+  .screen.active{ display:flex; }
+
+  /* ACTIVATION */
+  #activation{ justify-content:center; align-items:center; padding:32px; text-align:center;
+    background:radial-gradient(120% 90% at 50% 20%, #0c1c26 0%, #02080d 65%); }
+  .eyebrow{ font-size:11px; letter-spacing:.18em; color:var(--text-dim); margin-bottom:10px; }
+  #activation h1{ font-size:26px; font-weight:900; line-height:1.15; letter-spacing:.04em; margin:0 0 6px; }
+  #activation h1 span{ display:block; font-size:15px; font-weight:500; color:var(--green); letter-spacing:.3em; margin-top:6px; }
+  .unit{ margin-top:26px; font-size:11px; color:var(--text-dim); letter-spacing:.12em; }
+  .primary-btn{
+    margin-top:40px; width:150px; height:150px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #123425, var(--bg-panel) 70%);
+    border:2px solid var(--accent-dim); color:var(--green); font-family:'Orbitron',sans-serif;
+    font-weight:700; letter-spacing:.12em; font-size:15px; cursor:pointer;
+    box-shadow:0 0 0 6px rgba(53,242,160,0.05), 0 0 30px rgba(53,242,160,0.08) inset;
+    transition:transform .15s ease, box-shadow .2s ease;
+  }
+  .primary-btn:active{ transform:scale(.96); box-shadow:0 0 0 6px rgba(53,242,160,0.12), 0 0 40px rgba(53,242,160,0.25) inset; }
+  .small-note{ margin-top:22px; font-size:10px; color:var(--text-dim); letter-spacing:.08em; }
+
+  /* BOOT */
+  #boot{ justify-content:center; padding:36px 26px; background:var(--bg-deep); }
+  .boot-title{ font-family:'Orbitron',sans-serif; font-size:13px; letter-spacing:.2em; color:var(--green); margin-bottom:18px; }
+  .boot-log{ font-size:12.5px; line-height:1.9; color:var(--text-dim); white-space:pre-wrap; }
+  .boot-log .ok{ color:var(--green); }
+
+  /* SCANNER */
+  #scanner{ background:var(--bg-deep); }
+  .topbar{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:14px 16px; border-bottom:1px solid var(--line); background:var(--bg-panel);
+    flex-shrink:0;
+  }
+  .tiny{ font-size:10px; color:var(--text-dim); letter-spacing:.1em; }
+  .mode-label{ font-family:'Orbitron',sans-serif; font-size:12px; letter-spacing:.06em; margin-top:2px; }
+  .mode-label span{ color:var(--accent); }
+  .icon-btn{
+    width:40px; height:40px; border-radius:8px; border:1px solid var(--line);
+    background:var(--bg-panel-2); color:var(--text); font-size:16px; cursor:pointer;
+  }
+  .icon-btn.active{ border-color:var(--accent); color:var(--accent); }
+
+  .signal-area{ position:relative; flex:1; min-height:0; background:#010407; }
+  #signalCanvas{ width:100%; height:100%; display:block; }
+  .signal-caption{
+    position:absolute; left:12px; bottom:10px; font-size:9.5px; letter-spacing:.14em;
+    color:var(--text-dim);
+  }
+
+  .readout{ flex-shrink:0; padding:14px 16px 4px; background:var(--bg-panel); border-top:1px solid var(--line); }
+  .threat-card{ display:flex; align-items:baseline; gap:12px; }
+  .threat-card .tiny{ flex-shrink:0; }
+  .threat-number{ font-family:'Orbitron',sans-serif; font-weight:900; font-size:40px; color:var(--accent); line-height:1; transition:color .3s; }
+  .status{ font-family:'Orbitron',sans-serif; font-size:13px; font-weight:700; letter-spacing:.1em; color:var(--accent); transition:color .3s; }
+
+  .meter-wrap{ margin-top:12px; }
+  .meter-labels{ display:flex; justify-content:space-between; font-size:10px; color:var(--text-dim); margin-bottom:4px; }
+  #threatSlider{
+    -webkit-appearance:none; appearance:none; width:100%; height:26px; background:transparent; cursor:pointer;
+  }
+  #threatSlider::-webkit-slider-runnable-track{
+    height:6px; border-radius:3px;
+    background:linear-gradient(90deg, var(--green), var(--amber), var(--red));
+  }
+  #threatSlider::-webkit-slider-thumb{
+    -webkit-appearance:none; margin-top:-9px; width:22px; height:22px; border-radius:50%;
+    background:var(--bg-deep); border:3px solid var(--accent);
+  }
+  #threatSlider:disabled{ opacity:.4; }
+
+  .indicators{ display:flex; gap:18px; margin-top:12px; padding-bottom:12px; font-size:10.5px; color:var(--text-dim); letter-spacing:.06em; }
+  .indicators > div{ display:flex; align-items:center; gap:6px; }
+  .dot{ width:8px; height:8px; border-radius:50%; background:#213b45; display:inline-block; }
+  .dot.on{ background:var(--green); box-shadow:0 0 8px var(--green); }
+  .dot.blink{ animation:blink 1s steps(1) infinite; }
+  @keyframes blink{ 50%{ opacity:.15; } }
+
+  .control-panel{
+    flex-shrink:0; background:var(--bg-panel-2); border-top:1px solid var(--line);
+    padding:14px 16px calc(16px + env(safe-area-inset-bottom));
+    max-height:320px; overflow:hidden; transition:max-height .25s ease, padding .25s ease;
+  }
+  .control-panel.collapsed{ max-height:0; padding-top:0; padding-bottom:0; border-top-color:transparent; }
+  .panel-title{ font-size:10px; letter-spacing:.14em; color:var(--text-dim); margin-bottom:10px; }
+  .mode-buttons{ display:flex; gap:8px; margin-bottom:10px; }
+  .mode-btn{
+    flex:1; padding:10px 0; border-radius:6px; border:1px solid var(--line); background:var(--bg-panel);
+    color:var(--text-dim); font-family:'Orbitron',sans-serif; font-size:11px; letter-spacing:.05em; cursor:pointer;
+  }
+  .mode-btn.active{ border-color:var(--accent); color:var(--accent); background:rgba(53,242,160,0.06); }
+  .button-row{ display:flex; gap:8px; margin-bottom:8px; }
+  .control-btn{
+    flex:1; padding:12px 0; border-radius:6px; border:1px solid var(--line); background:var(--bg-panel);
+    color:var(--text); font-family:'Share Tech Mono',monospace; font-size:12px; letter-spacing:.04em; cursor:pointer;
+  }
+  .control-btn.toggled{ border-color:var(--accent); color:var(--accent); }
+  .control-btn.danger{ color:var(--red); border-color:#4a1f1f; }
+  .control-btn.danger:active{ background:rgba(255,69,69,0.1); }
+  .panel-note{ margin-top:6px; font-size:9.5px; color:var(--text-dim); text-align:center; letter-spacing:.04em; }
+</style>
+</head>
+<body>
+<div id="frame">
+  <main style="position:relative; flex:1;">
+
+    <section id="activation" class="screen active">
+      <div class="eyebrow">PARANORMAL KINETIC EQUIPMENT</div>
+      <h1>PKE<br><span>FIELD SCANNER</span></h1>
+      <div class="unit">FIELD UNIT // SIMULATION</div>
+      <button id="activateBtn" class="primary-btn">ACTIVATE</button>
+      <div class="small-note">SIMULATION SYSTEM • NO CAMERA ACCESS</div>
+    </section>
+
+    <section id="boot" class="screen">
+      <div class="boot-title">PKE FIELD SCANNER</div>
+      <div id="bootLog" class="boot-log"></div>
+    </section>
+
+    <section id="scanner" class="screen">
+      <header class="topbar">
+        <div>
+          <div class="tiny">PKE FIELD SCANNER</div>
+          <div class="mode-label">FIELD MONITOR // <span id="displayModeLabel">FLUID WAVE</span> <span id="autoTag" style="display:none; color:var(--accent);">· SWEEPING</span></div>
+        </div>
+        <button id="menuBtn" class="icon-btn active">☰</button>
+      </header>
+
+      <div class="signal-area">
+        <canvas id="signalCanvas"></canvas>
+        <div class="signal-caption">PSYCHOKINETIC FIELD RESPONSE</div>
+      </div>
+
+      <section class="readout">
+        <div class="threat-card">
+          <div class="tiny">THREAT LEVEL</div>
+          <div class="threat-number" id="threatNumber">100</div>
+          <div class="status" id="status">LOW</div>
+        </div>
+        <div class="meter-wrap">
+          <div class="meter-labels"><span>100</span><span>1200</span></div>
+          <input id="threatSlider" type="range" min="100" max="1200" value="100">
+        </div>
+        <div class="indicators">
+          <div><span class="dot" id="dotField"></span>FIELD</div>
+          <div><span class="dot" id="dotAudio"></span>AUDIO</div>
+          <div><span class="dot" id="dotSensor"></span>SENSOR</div>
+        </div>
+      </section>
+
+      <div id="controlPanel" class="control-panel">
+        <div class="panel-title">OPERATOR CONTROLS</div>
+        <div class="mode-buttons">
+          <button class="mode-btn active" data-mode="wave">FLUID WAVE</button>
+          <button class="mode-btn" data-mode="bars">BAR GRAPH</button>
+        </div>
+        <div class="button-row">
+          <button id="autoBtn" class="control-btn">AUTO: OFF</button>
+          <button id="lockBtn" class="control-btn">LOCK: OFF</button>
+        </div>
+        <div class="button-row">
+          <button id="audioBtn" class="control-btn toggled">AUDIO: ON</button>
+          <button id="deactivateBtn" class="control-btn danger">DEACTIVATE</button>
+        </div>
+        <div class="panel-note">DISPLAY MODE DOES NOT ALTER THREAT LEVEL</div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const screens = { activation: $('activation'), boot: $('boot'), scanner: $('scanner') };
+  function showScreen(name){
+    Object.values(screens).forEach(s => s.classList.remove('active'));
+    screens[name].classList.add('active');
+  }
+
+  /* ---------- ACTIVATION / DEACTIVATION CHIRP ---------- */
+  let chirpCtx = null;
+  function getChirpCtx(){
+    if(!chirpCtx) chirpCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(chirpCtx.state === 'suspended') chirpCtx.resume();
+    return chirpCtx;
+  }
+  // Two-note descending/ascending warble, like a communicator badge chirp.
+  function playChirp(kind){
+    const ctx = getChirpCtx();
+    const now = ctx.currentTime;
+    const notes = kind === 'on'
+      ? [ {f:1800, t:0,    d:0.075}, {f:2300, t:0.09, d:0.11} ]
+      : [ {f:2300, t:0,    d:0.075}, {f:1500, t:0.09, d:0.13} ];
+    notes.forEach(n => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      const start = now + n.t;
+      osc.frequency.setValueAtTime(n.f, start);
+      osc.frequency.exponentialRampToValueAtTime(Math.max(200, n.f * 0.82), start + n.d);
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.09, start + 0.008);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + n.d);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + n.d + 0.02);
+    });
+  }
+
+  /* ---------- BOOT SEQUENCE ---------- */
+  const bootLines = [
+    'INITIALIZING PKE CORE...',
+    'CALIBRATING NON-LINEAR SENSORS...',
+    'CHECKING GYRO OSCILLATORS........ OK',
+    'LOADING ECTOPLASMIC RESIDUE TABLES...',
+    'FIELD BAFFLES.................... ONLINE',
+    'THREAT MATRIX..................... READY',
+    'ALL SYSTEMS NOMINAL'
+  ];
+  function runBoot(){
+    showScreen('boot');
+    const log = $('bootLog');
+    log.textContent = '';
+    let i = 0;
+    const step = () => {
+      if(i < bootLines.length){
+        log.textContent += bootLines[i] + '\n';
+        i++;
+        setTimeout(step, i === bootLines.length ? 350 : 260);
+      } else {
+        showScreen('scanner');
+        startScanner();
+      }
+    };
+    setTimeout(step, 300);
+  }
+  $('activateBtn').addEventListener('click', () => { playChirp('on'); runBoot(); });
+
+  /* ---------- SCANNER STATE ---------- */
+  let threat = 100;
+  let mode = 'wave';
+  let auto = false, locked = false, audioOn = true;
+  let autoTimer = null;
+  let autoState = null;
+  const slider = $('threatSlider');
+
+  function band(t){
+    if(t <= 350) return { name:'LOW', color:getComputedStyle(document.documentElement).getPropertyValue('--green').trim() };
+    if(t <= 650) return { name:'ELEVATED', color:'#c8e84a' };
+    if(t <= 950) return { name:'HIGH', color:getComputedStyle(document.documentElement).getPropertyValue('--amber').trim() };
+    return { name:'CRITICAL', color:getComputedStyle(document.documentElement).getPropertyValue('--red').trim() };
+  }
+
+  function setThreat(t, fromSlider){
+    threat = Math.max(100, Math.min(1200, Math.round(t)));
+    if(!fromSlider) slider.value = threat;
+    const b = band(threat);
+    $('threatNumber').textContent = threat;
+    $('status').textContent = b.name;
+    $('threatNumber').style.color = b.color;
+    $('status').style.color = b.color;
+    document.documentElement.style.setProperty('--accent', b.color);
+  }
+
+  slider.addEventListener('input', e => setThreat(+e.target.value, true));
+
+  /* mode buttons */
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      mode = btn.dataset.mode;
+      $('displayModeLabel').textContent = mode === 'wave' ? 'FLUID WAVE' : 'BAR GRAPH';
+    });
+  });
+
+  /* menu (collapse control panel) */
+  $('menuBtn').addEventListener('click', () => {
+    const panel = $('controlPanel');
+    panel.classList.toggle('collapsed');
+    $('menuBtn').classList.toggle('active');
+  });
+
+  /* auto — scripted scan simulation: baseline sweep, occasional detection spike, hold, fade */
+  function rand(a, b){ return a + Math.random() * (b - a); }
+
+  function nextAutoPhase(now){
+    switch(autoState.phase){
+      case 'baseline':
+        autoState.phase = 'rising';
+        autoState.target = rand(550, 1180);
+        autoState.until = now + rand(1600, 3000);
+        break;
+      case 'rising':
+        autoState.phase = 'holding';
+        autoState.until = now + rand(800, 1700);
+        break;
+      case 'holding':
+        autoState.phase = 'fading';
+        autoState.target = rand(120, 260);
+        autoState.until = now + rand(2200, 3400);
+        break;
+      case 'fading':
+      default:
+        autoState.phase = 'baseline';
+        autoState.target = rand(140, 320);
+        autoState.until = now + rand(2500, 4800);
+        break;
+    }
+    $('autoTag').textContent = autoState.phase === 'rising' || autoState.phase === 'holding' ? '· CONTACT' : '· SWEEPING';
+  }
+
+  function autoTick(){
+    if(locked) return;
+    const now = performance.now();
+    if(now > autoState.until) nextAutoPhase(now);
+    const speed = autoState.phase === 'holding' ? 0.18 : 0.05;
+    const jitterSize = autoState.phase === 'holding' ? 18 : 8;
+    const next = threat + (autoState.target - threat) * speed + (Math.random() - 0.5) * jitterSize;
+    setThreat(next);
+  }
+
+  $('autoBtn').addEventListener('click', () => {
+    auto = !auto;
+    $('autoBtn').textContent = 'AUTO: ' + (auto ? 'ON' : 'OFF');
+    $('autoBtn').classList.toggle('toggled', auto);
+    $('autoTag').style.display = auto ? 'inline' : 'none';
+    if(auto){
+      const now = performance.now();
+      autoState = { phase:'baseline', target: rand(150, 300), until: now + rand(1500, 3000) };
+      autoTimer = setInterval(autoTick, 120);
+    } else {
+      clearInterval(autoTimer);
+      autoState = null;
+    }
+  });
+
+  /* lock */
+  $('lockBtn').addEventListener('click', () => {
+    locked = !locked;
+    slider.disabled = locked;
+    $('lockBtn').textContent = 'LOCK: ' + (locked ? 'ON' : 'OFF');
+    $('lockBtn').classList.toggle('toggled', locked);
+  });
+
+  /* audio */
+  let audioCtx = null, beepTimer = null;
+  function scheduleBeep(){
+    if(!audioOn) return;
+    const rate = Math.max(120, 900 - threat * 0.6);
+    beepTimer = setTimeout(() => {
+      if(audioOn && audioCtx){
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.frequency.value = 300 + threat * 0.9;
+        osc.type = 'square';
+        gain.gain.value = 0.03;
+        osc.connect(gain).connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.045);
+        $('dotSensor').classList.add('on');
+        setTimeout(() => $('dotSensor').classList.remove('on'), 90);
+      }
+      scheduleBeep();
+    }, rate);
+  }
+  $('audioBtn').addEventListener('click', () => {
+    audioOn = !audioOn;
+    $('audioBtn').textContent = 'AUDIO: ' + (audioOn ? 'ON' : 'OFF');
+    $('audioBtn').classList.toggle('toggled', audioOn);
+    $('dotAudio').classList.toggle('on', audioOn);
+    if(audioOn){
+      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      clearTimeout(beepTimer);
+      scheduleBeep();
+    } else {
+      clearTimeout(beepTimer);
+    }
+  });
+
+  /* deactivate */
+  $('deactivateBtn').addEventListener('click', () => {
+    playChirp('off');
+    clearInterval(autoTimer);
+    clearTimeout(beepTimer);
+    auto = false; locked = false; autoState = null;
+    $('autoBtn').textContent = 'AUTO: OFF'; $('autoBtn').classList.remove('toggled');
+    $('autoTag').style.display = 'none';
+    $('lockBtn').textContent = 'LOCK: OFF'; $('lockBtn').classList.remove('toggled');
+    slider.disabled = false;
+    setThreat(100);
+    showScreen('activation');
+  });
+
+  /* ---------- CANVAS ---------- */
+  const canvas = $('signalCanvas');
+  const ctx = canvas.getContext('2d');
+  let raf = null, tAcc = 0;
+
+  function resizeCanvas(){
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  window.addEventListener('resize', resizeCanvas);
+
+  function draw(){
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const w = rect.width, h = rect.height;
+    ctx.clearRect(0,0,w,h);
+    const c = band(threat).color;
+    tAcc += 0.045 + threat/6000;
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, h/2); ctx.lineTo(w, h/2);
+    ctx.stroke();
+
+    if(mode === 'wave'){
+      const amp = (h*0.32) * (threat/1200) + 4;
+      const freq = 0.015 + threat/40000;
+      ctx.beginPath();
+      for(let x=0; x<=w; x+=2){
+        const jitter = (Math.random()-0.5) * (threat/1200) * 6;
+        const y = h/2 + Math.sin(x*freq + tAcc*2) * amp * 0.7
+                 + Math.sin(x*freq*2.3 + tAcc*3.1) * amp * 0.25
+                 + jitter;
+        x === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+      }
+      ctx.strokeStyle = c;
+      ctx.lineWidth = 2;
+      ctx.shadowColor = c; ctx.shadowBlur = 10;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    } else {
+      const bars = 28;
+      const gap = w / bars;
+      for(let i=0;i<bars;i++){
+        const n = Math.sin(i*0.7 + tAcc*2.4) * 0.5 + Math.sin(i*0.31 - tAcc*1.6) * 0.5;
+        const level = Math.max(0.04, (Math.abs(n)) * (threat/1200) + Math.random()*0.06);
+        const barH = level * h * 0.85;
+        ctx.fillStyle = c;
+        ctx.globalAlpha = 0.85;
+        ctx.fillRect(i*gap + gap*0.18, h/2 - barH/2, gap*0.64, barH);
+      }
+      ctx.globalAlpha = 1;
+    }
+    raf = requestAnimationFrame(draw);
+  }
+
+  function startScanner(){
+    resizeCanvas();
+    $('dotField').classList.add('on', 'blink');
+    $('dotAudio').classList.toggle('on', audioOn);
+    if(audioOn){
+      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      scheduleBeep();
+    }
+    if(raf) cancelAnimationFrame(raf);
+    draw();
+  }
+})();
+</script>
+</body>
+</html>
